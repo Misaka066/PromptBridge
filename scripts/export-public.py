@@ -10,7 +10,8 @@ FILES = ["Package.swift", "README.md", "LICENSE", "NOTICE", "CONTRIBUTING.md", "
          "CHANGELOG.md", "AGENTS.md", ".gitignore", ".env.example", "config/providers.example.json",
          "docs/installation.md", "docs/development.md", "docs/privacy.md", "docs/architecture.md",
          "docs/adr/0007-runtime-integration-capabilities.md", "docs/adr/0008-one-click-auto.md",
-         "docs/plans/2026-11-08-public-release.md", "docs/releases/0.9.0.md"]
+         "docs/plans/2026-11-08-public-release.md", "docs/releases/0.9.0.md",
+         "docs/releases/0.9.1.md", "docs/releases/0.9.2.md"]
 DIRECTORIES = ["Sources", "Tools", "Tests", "scripts", ".github", "docs/images"]
 SECRET = re.compile(rb"(?:gh[pousr]_[A-Za-z0-9]{30,}|sk-(?:ant-)?[A-Za-z0-9_-]{30,}|-----BEGIN (?:RSA |EC )?PRIVATE KEY-----)")
 

@@ -1045,7 +1045,7 @@ private final class LauncherHostingView: NSHostingView<CollapsedView> {
                 self.presentation.returning = false
                 guard self.workflow.sourceDocumentID == document else { return }
                 if returned { self.showCollapsed(explicit: false) }
-                else { self.showCaptureFailure("未能返回原输入框。请手动切回原应用，按 ⌥T 或点击浮窗重新读取。", kind: .returnFailure) }
+                else { self.showCaptureFailure("未能返回原输入框。请手动切回原应用，\(self.settings.captureEntryText)重新读取。", kind: .returnFailure) }
             }
         } else if !host.isManual {
             Task { await workflow.captureSelection() }
@@ -1440,7 +1440,7 @@ private struct PanelView: View {
                     if !workflow.isManualInput && workflow.entry != .cli {
                         Button(workflow.isExternalSelection ? "返回输入框" : "重新读取选区", action: reread)
                             .font(.caption).buttonStyle(.borderless).disabled(composing)
-                            .help(workflow.isFullInputCapture ? "返回后，按 ⌥T 或点击浮窗重新读取全文。"
+                            .help(workflow.isFullInputCapture ? "返回后，\(settings.captureEntryText)重新读取全文。"
                                   : "返回原应用选择文字，再从菜单读取选中文字。")
                     }
                 }

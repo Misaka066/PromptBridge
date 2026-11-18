@@ -22,11 +22,20 @@ func runTranslationPreferencesChecks() -> [String] {
     check("Auto defaults on for legacy preferences and preserves explicit off") {
         let encoded = try JSONEncoder().encode(defaults)
         var legacy = try JSONSerialization.jsonObject(with: encoded) as! [String: Any]
+        legacy.removeValue(forKey: "shortcut")
         legacy.removeValue(forKey: "automaticTranslationAndReplacement")
         let migrated = try JSONDecoder().decode(TranslationPreferences.self, from: JSONSerialization.data(withJSONObject: legacy))
         let disabled = TranslationPreferences(automaticTranslationAndReplacement: false)
         let restored = try JSONDecoder().decode(TranslationPreferences.self, from: JSONEncoder().encode(disabled))
         return defaults.automaticTranslationAndReplacement && migrated == defaults && restored == disabled
+    }
+    check("custom shortcut persists and rejects bare or shift-only typing") {
+        var value = defaults
+        value.shortcut = TranslationShortcut(keyCode: 17, modifiers: (1 << 12) | (1 << 11))
+        try value.validate()
+        let restored = try JSONDecoder().decode(TranslationPreferences.self, from: JSONEncoder().encode(value))
+        return restored == value && !TranslationShortcut(keyCode: 17, modifiers: 0).isValid
+            && !TranslationShortcut(keyCode: 17, modifiers: 1 << 9).isValid
     }
     check("defaults retain translation and optimization safeguards") {
         try defaults.validate()

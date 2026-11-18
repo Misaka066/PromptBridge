@@ -20,6 +20,8 @@ import Foundation
     private(set) var configurationIdentity = UUID().uuidString
     let preferencesFileURL: URL?
     private var preferencesReadFailed = false
+    var hotKey: SelectionHotKey?
+    var captureEntryText: String { hotKey?.active.map { "按 " + $0.displayName + " 或点击浮窗" } ?? "点击浮窗" }
     var preferencesDidChange: (() -> Void)?
     var canEditPreferences: (() -> Bool)?
     let configFileURL: URL?
@@ -278,12 +280,19 @@ import Foundation
         do {
             let value = try preferencesFileURL.flatMap { try TranslationPreferencesStore(fileURL: $0).load() }
                 ?? TranslationPreferences()
+            do {
+                try hotKey?.apply(value.shortcut) {}
+                preferencesNotice = nil
+            } catch {
+                let active = hotKey?.active?.displayName ?? "无"
+                preferencesNotice = "文件中的 " + value.shortcut.displayName + " 未生效，当前快捷键：" + active + "。" + error.localizedDescription
+            }
             let changed = value != preferences
             preferences = value
             preferencesReadFailed = false
-            preferencesNotice = nil
             if changed { preferencesDidChange?() }
             return true
+
         } catch {
             preferencesReadFailed = true
             preferencesNotice = error.localizedDescription
@@ -291,23 +300,28 @@ import Foundation
         }
     }
 
-    func savePreferences(_ proposed: TranslationPreferences) throws {
+    func savePreferences(_ proposed: TranslationPreferences, retryShortcut: Bool = true) throws {
         guard canEditPreferences?() != false else { throw SettingsFailure("请先完成当前替换或输入法操作。") }
         guard !preferencesReadFailed else { throw SettingsFailure("偏好文件未能读取，请修正后重新读取；原文件不会被覆盖。") }
         var value = proposed
         value.targetLanguage = value.targetLanguage.trimmingCharacters(in: .whitespacesAndNewlines)
         try value.validate()
-        if let preferencesFileURL { try TranslationPreferencesStore(fileURL: preferencesFileURL).save(value) }
+        func persist() throws {
+            if let preferencesFileURL { try TranslationPreferencesStore(fileURL: preferencesFileURL).save(value) }
+        }
+        if let hotKey, retryShortcut || preferences.shortcut != value.shortcut {
+            try hotKey.apply(value.shortcut, persist: persist)
+        } else { try persist() }
         let changed = preferences != value
         preferences = value
-        preferencesNotice = nil
+        if retryShortcut || hotKey?.active == value.shortcut { preferencesNotice = nil }
         if changed { preferencesDidChange?() }
     }
 
     func setDefaultLanguage(_ language: String) throws {
         var updated = preferences
         updated.targetLanguage = language.trimmingCharacters(in: .whitespacesAndNewlines)
-        try savePreferences(updated)
+        try savePreferences(updated, retryShortcut: false)
     }
 }
 

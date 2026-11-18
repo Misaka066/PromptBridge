@@ -53,6 +53,7 @@ public struct TranslationPreferences: Codable, Equatable, Sendable {
     public var targetLanguage: String
     public var translationTemplate: String
     public var optimizationTemplate: String
+    public var shortcut = TranslationShortcut.standard
     public var launcherMode: LauncherMode
     public var automaticTranslationAndReplacement: Bool
 
@@ -69,11 +70,12 @@ public struct TranslationPreferences: Codable, Equatable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case targetLanguage, translationTemplate, optimizationTemplate, launcherMode, automaticTranslationAndReplacement
+        case shortcut, targetLanguage, translationTemplate, optimizationTemplate, launcherMode, automaticTranslationAndReplacement
     }
 
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
+        shortcut = try values.decodeIfPresent(TranslationShortcut.self, forKey: .shortcut) ?? .standard
         targetLanguage = try values.decode(String.self, forKey: .targetLanguage)
         translationTemplate = try values.decode(String.self, forKey: .translationTemplate)
         optimizationTemplate = try values.decode(String.self, forKey: .optimizationTemplate)
@@ -89,6 +91,7 @@ public struct TranslationPreferences: Codable, Equatable, Sendable {
     }
 
     public func validate() throws {
+        guard shortcut.isValid else { throw TranslationPreferencesError.malformed }
         for intent in DraftIntent.allCases {
             _ = try render(intent: intent, targetLanguage: targetLanguage)
         }

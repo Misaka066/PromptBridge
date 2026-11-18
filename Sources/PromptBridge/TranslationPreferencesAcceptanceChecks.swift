@@ -1,12 +1,13 @@
 #if PROMPTBRIDGE_TESTING
 import DraftCore
 import Foundation
+import Carbon
 import AppKit
 import AccessibilityContracts
 
 @MainActor enum TranslationPreferencesAcceptanceChecks {
     static func run() async -> [(String, Bool)] {
-        var checks: [(String, Bool)] = []
+        var checks = recorderChecks()
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("PromptBridgePreferences-" + UUID().uuidString)
         let file = root.appendingPathComponent("preferences.json")
         defer { try? FileManager.default.removeItem(at: root) }
@@ -50,6 +51,32 @@ import AccessibilityContracts
         } catch { checks.append(("preferences integration completes: \(error.localizedDescription)", false)) }
         checks += await statusMenuChecks(preferencesFileURL: root.appendingPathComponent("menu-preferences.json"))
         return checks
+    }
+
+    private static func recorderChecks() -> [(String, Bool)] {
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 320, height: 100),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        let button = ShortcutRecorder.RecorderButton()
+        window.contentView = button
+        var selected: TranslationShortcut?
+        button.accept = { selected = $0 }
+        func press(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) {
+            let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags,
+                timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: "",
+                charactersIgnoringModifiers: "", isARepeat: false, keyCode: keyCode)!
+            _ = button.performKeyEquivalent(with: event)
+        }
+        button.beginRecording()
+        press(17, flags: .shift)
+        let rejected = button.recording && selected == nil
+        press(53, flags: [])
+        let cancelled = !button.recording && selected == nil
+        button.beginRecording()
+        press(17, flags: [.control, .option])
+        return [("recorder rejects shift-only letters", rejected),
+                ("escape cancels shortcut recording", cancelled),
+                ("recorder accepts a modified letter and ends capture", !button.recording &&
+                    selected == TranslationShortcut(keyCode: 17, modifiers: UInt32(controlKey | optionKey)))]
     }
 
     /// Isolated broker wire used by the preference/menu checks. The endpoint

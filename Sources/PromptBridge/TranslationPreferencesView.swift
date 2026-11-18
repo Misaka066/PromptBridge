@@ -38,11 +38,23 @@ struct TranslationPreferencesView: View {
                                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         }
                         VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("整框翻译快捷键")
+                                ShortcutRecorder(shortcut: $session.preferencesDraft.shortcut, settings: settings)
+                                    .fixedSize()
+                                Button("恢复默认") { session.preferencesDraft.shortcut = .standard }
+                            }.disabled(session.isComposing)
+                            if settings.hotKey != nil && settings.hotKey?.active == nil {
+                                Text("当前快捷键未注册，可更换组合或重新保存。").font(.caption).foregroundStyle(.orange)
+                            }
+                            error(at: .shortcut)
+                        }.id(SettingsEditingSession.PreferenceErrorLocation.shortcut)
+                        VStack(alignment: .leading, spacing: 6) {
                             Picker("浮窗显示", selection: $session.preferencesDraft.launcherMode) {
                                 Text("始终显示").tag(LauncherMode.persistent)
                                 Text("编辑支持的输入框时显示").tag(LauncherMode.focusedInput)
                             }.disabled(session.isComposing)
-                            Text("浮窗出现时不读取正文；点击浮窗或按 ⌥T 后才读取。")
+                            Text("浮窗出现时不读取正文；\(settings.captureEntryText)后才读取。")
                                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         }
                         #if !PROMPTBRIDGE_TESTING

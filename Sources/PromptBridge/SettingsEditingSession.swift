@@ -17,7 +17,7 @@ import DraftCore
     @Published var showsPreferenceFile = false
     @Published var showsAdvancedConnection = false
     @Published var showsModelFile = false
-    enum PreferenceErrorLocation: Hashable { case language, template, file }
+    enum PreferenceErrorLocation: Hashable { case language, template, shortcut, file }
     @Published var preferencesErrorLocation: PreferenceErrorLocation?
     @Published var preferencesError: String?
     @Published var preferencesNotice: String?
@@ -85,6 +85,7 @@ import DraftCore
 
     @discardableResult func savePreferences() -> Bool {
         guard !isComposing else { return false }
+        preferencesNotice = nil
         preferencesError = nil
         preferencesErrorLocation = nil
         for intent in DraftIntent.allCases {
@@ -108,8 +109,8 @@ import DraftCore
             return true
         } catch {
             preferencesError = error.localizedDescription
-            preferencesErrorLocation = .file
-            showsPreferenceFile = true
+            preferencesErrorLocation = error is ShortcutRegistrationError ? .shortcut : .file
+            if preferencesErrorLocation == .file { showsPreferenceFile = true }
             return false
         }
     }
@@ -121,7 +122,7 @@ import DraftCore
             preferencesBaseline = settings.preferences
             preferencesError = nil
             preferencesErrorLocation = nil
-            preferencesNotice = "已重新读取设置。"
+            preferencesNotice = settings.preferencesNotice ?? "已重新读取设置。"
             templateDocumentID = UUID()
         } else { preferencesError = settings.preferencesNotice; preferencesErrorLocation = .file; showsPreferenceFile = true }
     }

@@ -182,6 +182,8 @@ import AccessibilityContracts
         #endif
         if !uiTestMode {
             hotKey = SelectionHotKey { [weak self] in self?.readFullInput() }
+            settings.hotKey = hotKey
+            try? hotKey?.apply(settings.preferences.shortcut) {}
             installStatusMenu()
         } else if externalTestMode && CommandLine.arguments.contains("--external-test-status-menu") {
             // Exercise the actual status menu without loading user configuration
@@ -339,7 +341,7 @@ import AccessibilityContracts
     }
 
     @objc private func showExternalHelp() {
-        let shortcut = hotKey?.isRegistered == true ? "点击要翻译的输入框，再按 ⌥T（Option＋T）处理整个草稿，不受选区影响。" : "快捷键未能注册，请用菜单栏的整框翻译入口。"
+        let shortcut = hotKey?.active.map { "点击要翻译的输入框，再按 " + $0.displayName + " 处理整个草稿，不受选区影响。" } ?? "快捷键未能注册，请用菜单栏的整框翻译入口。"
         let alert = NSAlert()
         alert.messageText = "输入框翻译说明"
         let appPath = Bundle.main.bundleURL.path
@@ -406,7 +408,7 @@ import AccessibilityContracts
         let menu = NSMenu()
         menu.delegate = self
         for (title, action) in [
-            (readInputMenuTitle + (hotKey?.isRegistered == true ? "  ⌥T" : ""), #selector(readFullInput)),
+            (readInputMenuTitle + (hotKey?.active.map { "  " + $0.displayName } ?? ""), #selector(readFullInput)),
             ("打开已有草稿", #selector(showCurrentDraft)),
             ("显示浮窗", #selector(showLauncher)),
             ("隐藏浮窗", #selector(hideLauncher)),
@@ -452,7 +454,7 @@ import AccessibilityContracts
     func menuWillOpen(_ menu: NSMenu) {
         // Refresh display text only; the broker scope is acquired before popUp.
         guard menu === statusMenu else { return }
-        menu.items.first(where: { $0.action == #selector(readFullInput) })?.title = readInputMenuTitle + (hotKey?.isRegistered == true ? "  ⌥T" : "")
+        menu.items.first(where: { $0.action == #selector(readFullInput) })?.title = readInputMenuTitle + (hotKey?.active.map { "  " + $0.displayName } ?? "")
     }
 
     func menuDidClose(_ menu: NSMenu) {
